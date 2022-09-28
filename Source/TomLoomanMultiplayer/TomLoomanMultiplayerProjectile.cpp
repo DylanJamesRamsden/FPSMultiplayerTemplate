@@ -3,6 +3,7 @@
 #include "TomLoomanMultiplayerProjectile.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "Components/SphereComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 ATomLoomanMultiplayerProjectile::ATomLoomanMultiplayerProjectile() 
 {
@@ -34,9 +35,16 @@ ATomLoomanMultiplayerProjectile::ATomLoomanMultiplayerProjectile()
 void ATomLoomanMultiplayerProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
 	// Only add impulse and destroy projectile if we hit a physics
-	if ((OtherActor != nullptr) && (OtherActor != this) && (OtherComp != nullptr) && OtherComp->IsSimulatingPhysics())
+	if ((OtherActor != nullptr) && (OtherActor != this) && (OtherComp != nullptr))
 	{
-		OtherComp->AddImpulseAtLocation(GetVelocity() * 100.0f, GetActorLocation());
+		// Moved this check inside the scope so the projectile can still be destroyed and play it's explosion effect,
+		// regardless of if it's hit actor is simulating physics or not
+		if (OtherComp->IsSimulatingPhysics())
+		{
+			OtherComp->AddImpulseAtLocation(GetVelocity() * 100.0f, GetActorLocation());	
+		}
+
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ExplosionParticle, Hit.ImpactPoint);
 
 		Destroy();
 	}

@@ -22,6 +22,9 @@ class ATomLoomanMultiplayerProjectile : public AActor
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
 	UProjectileMovementComponent* ProjectileMovement;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = FX, meta = (AllowPrivateAccess = "true"))
+	UParticleSystem* ExplosionParticle;
+
 public:
 	ATomLoomanMultiplayerProjectile();
 
