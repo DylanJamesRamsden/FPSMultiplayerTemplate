@@ -99,7 +99,54 @@ void ATomLoomanMultiplayerCharacter::SetupPlayerInputComponent(class UInputCompo
 
 void ATomLoomanMultiplayerCharacter::OnFire()
 {
-	// try and fire a projectile
+	if (!HasAuthority())
+	{
+		ServerOnFire();
+	}
+	else
+	{
+		if (ProjectileClass != nullptr)
+		{
+			UWorld* const World = GetWorld();
+			if (World != nullptr)
+			{
+				const FRotator SpawnRotation = GetControlRotation();
+				// MuzzleOffset is in camera space, so transform it to world space before offsetting from the character location to find the final muzzle position
+				const FVector SpawnLocation = ((FP_MuzzleLocation != nullptr) ? FP_MuzzleLocation->GetComponentLocation() : GetActorLocation()) + SpawnRotation.RotateVector(GunOffset);
+
+				//Set Spawn Collision Handling Override
+				FActorSpawnParameters ActorSpawnParams;
+				ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+
+				// spawn the projectile at the muzzle
+				World->SpawnActor<ATomLoomanMultiplayerProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
+			}
+		}
+
+		MultiCastOnFire();
+	}
+
+	// NOTE: Handles our cosmetic events locally
+	
+	if (FireSound != nullptr)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
+	}
+
+	// try and play a firing animation if specified
+	if (FireAnimation != nullptr)
+	{
+		// Get the animation object for the arms mesh
+		UAnimInstance* AnimInstance = Mesh1P->GetAnimInstance();
+		if (AnimInstance != nullptr)
+		{
+			AnimInstance->Montage_Play(FireAnimation, 1.f);
+		}
+	}
+}
+
+void ATomLoomanMultiplayerCharacter::ServerOnFire_Implementation()
+{
 	if (ProjectileClass != nullptr)
 	{
 		UWorld* const World = GetWorld();
@@ -118,21 +165,19 @@ void ATomLoomanMultiplayerCharacter::OnFire()
 		}
 	}
 
-	// try and play the sound if specified
-	if (FireSound != nullptr)
-	{
-		UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
-	}
+	MultiCastOnFire();
+}
 
-	// try and play a firing animation if specified
-	if (FireAnimation != nullptr)
+void ATomLoomanMultiplayerCharacter::MultiCastOnFire_Implementation()
+{
+	// NOTE: Handles our cosmetic events remotely
+	
+	if (!IsLocallyControlled() && GetNetMode() != NM_DedicatedServer)
 	{
-		// Get the animation object for the arms mesh
-		UAnimInstance* AnimInstance = Mesh1P->GetAnimInstance();
-		if (AnimInstance != nullptr)
+		if (FireSound != nullptr)
 		{
-			AnimInstance->Montage_Play(FireAnimation, 1.f);
-		}
+			UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
+		}	
 	}
 }
 

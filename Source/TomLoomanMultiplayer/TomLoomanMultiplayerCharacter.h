@@ -84,8 +84,16 @@ public:
 
 protected:
 	
-	/** Fires a projectile. */
+	/** Makes a request to the server to fire a projectile. */
 	void OnFire();
+
+	// Firing should always be approved and carried out by the server
+	UFUNCTION(Server, Reliable)
+	void ServerOnFire();
+
+	// Mainly just used to carry out cosmetic functionality client-side
+	UFUNCTION(NetMulticast, Reliable)
+	void MultiCastOnFire();
 
 	/** Handles moving forward/backward */
 	void MoveForward(float Val);
